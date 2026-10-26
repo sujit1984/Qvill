@@ -44,3 +44,14 @@ Use Expo Go or a development build to open the iOS / Android app. On-device note
 ## Current scope
 
 The web client currently supports quick notes, journal notes, hierarchical knowledge pages, local autosave, search, note sharing/export, browser print-to-PDF, and local PDF import/preview. The mobile client supports local notes, journals, and nested pages. Imported PDFs remain unchanged. PDF text extraction, annotations, true PDF editing, mobile PDF import, cross-device sync, authentication, and multi-user access remain follow-up work.
+
+## Build the macOS desktop app
+
+On Apple Silicon, build a self-contained Qvill DMG with:
+
+```sh
+npm install
+npm run package:mac
+```
+
+The installer is written to `dist/mac/Qvill-0.1.0-arm64.dmg`. Open the DMG, drag Qvill to Applications, then launch it. The desktop build packages the static web client and stores its IndexedDB data in the app’s local Chromium profile; it does not need a running web server. This local build is unsigned and is intended for development testing.

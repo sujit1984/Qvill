@@ -1,0 +1,17 @@
+appId: com.qvill.desktop
+productName: Qvill
+directories:
+  output: ../../dist/mac
+files:
+  - main.cjs
+  - package.json
+  - renderer/**/*
+mac:
+  category: public.app-category.productivity
+  target:
+    - target: dmg
+      arch:
+        - arm64
+dmg:
+  title: Qvill Installer
+  artifactName: Qvill-${version}-${arch}.dmg
