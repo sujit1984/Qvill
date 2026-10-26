@@ -43,15 +43,14 @@ Use Expo Go or a development build to open the iOS / Android app. On-device note
 
 ## Current scope
 
-The web client currently supports quick notes, journal notes, hierarchical knowledge pages, local autosave, search, note sharing/export, browser print-to-PDF, and local PDF import/preview. The mobile client supports local notes, journals, and nested pages. Imported PDFs remain unchanged. PDF text extraction, annotations, true PDF editing, mobile PDF import, cross-device sync, authentication, and multi-user access remain follow-up work.
+Knowledge pages use a five-level tree: Root → Trunk → Branch → Twig → Leaf. Leaf pages cannot have children. The web client currently supports quick notes, journal notes, hierarchical knowledge pages, local autosave, search, note sharing/export, browser print-to-PDF, and local PDF import/preview. The mobile client supports local notes, journals, and nested pages. Imported PDFs remain unchanged. PDF text extraction, annotations, true PDF editing, mobile PDF import, cross-device sync, authentication, and multi-user access remain follow-up work.
 
 ## Build the macOS desktop app
 
-On Apple Silicon, build a self-contained Qvill DMG with:
+On an Apple Silicon Mac with Xcode command-line tools, build a self-contained Qvill DMG without installing npm packages:
 
 ```sh
-npm install
 npm run package:mac
 ```
 
-The installer is written to `dist/mac/Qvill-0.1.0-arm64.dmg`. Open the DMG, drag Qvill to Applications, then launch it. The desktop build packages the static web client and stores its IndexedDB data in the app’s local Chromium profile; it does not need a running web server. This local build is unsigned and is intended for development testing.
+The installer is written to `dist/mac/Qvill-0.1.0-arm64.dmg`. Open the DMG and drag Qvill to Applications. This native WKWebView build bundles a lightweight client for local notes, journals, nested pages, search, Markdown export, print-to-PDF, and imported PDF preview. Data is saved in the app’s persistent local WebKit storage. It does not need a web server or internet connection. The build is ad-hoc signed but not Developer ID-signed or notarized, and is intended for local development testing.

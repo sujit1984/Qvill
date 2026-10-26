@@ -2,3 +2,5 @@
 @media print{.sidebar,.topbar,.list-pane,.editor-toolbar,.editor-bottom,.format-bar{display:none!important}.app-shell,.workspace,.content-layout,.editor-pane{display:block!important;height:auto!important;min-height:0!important;overflow:visible!important;background:white;border:0;box-shadow:none;padding:0;margin:0}.editor-document{padding:0!important;overflow:visible}.title-input{font-size:26pt}.body-input{min-height:0;height:auto;white-space:pre-wrap;overflow:visible}.body-input::placeholder{color:transparent}}
 
 .child-add{width:22px;height:25px;display:grid;place-items:center;border:0;border-radius:5px;background:transparent;color:#8b9aad;opacity:0;cursor:pointer}.tree-row:hover .child-add,.tree-row.current .child-add{opacity:1}.child-add:hover{background:#ffffff20;color:white}
+
+.tree-level{font-size:8px;color:#92a6c2;margin-left:4px;margin-right:3px}.child-add{flex:0 0 22px}
