@@ -5,7 +5,7 @@ Qvill is a local-first workspace for quick notes, daily journal entries, hierarc
 ## Workspace
 
 - `apps/web` — responsive Next.js web client. Notes and imported PDFs are saved in browser IndexedDB as you edit.
-- `apps/mobile` — Expo / React Native iOS and Android client with on-device SQLite persistence.
+- `apps/mobile` — Expo / React Native iOS and Android client scaffold with on-device SQLite notes, journal entries, and nested knowledge pages.
 - `apps/api` — NestJS REST API and PostgreSQL notes store.
 - `packages/shared` — shared note types and creation helpers.
 
@@ -43,4 +43,4 @@ Use Expo Go or a development build to open the iOS / Android app. On-device note
 
 ## Current scope
 
-Quick notes, journal notes, hierarchical knowledge pages, local autosave, search, note sharing/export, browser print-to-PDF, and local PDF import/preview are in the initial client. Imported PDFs remain unchanged. PDF text extraction, annotations, true PDF editing, cloud sync, authentication, and multi-user access are follow-up work.
+The web client currently supports quick notes, journal notes, hierarchical knowledge pages, local autosave, search, note sharing/export, browser print-to-PDF, and local PDF import/preview. The mobile client supports local notes, journals, and nested pages. Imported PDFs remain unchanged. PDF text extraction, annotations, true PDF editing, mobile PDF import, cross-device sync, authentication, and multi-user access remain follow-up work.

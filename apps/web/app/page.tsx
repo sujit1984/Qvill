@@ -131,8 +131,8 @@ export default function Home() {
   };
   const newPDF = async (file?: File) => {
     if (!file) return;
-    if (file.type !== "application/pdf") { notify("Choose a PDF file to import."); return; }
-    const pdf = createNote("pdf"); pdf.title = file.name.replace(/\.pdf$/i, "") || "Imported PDF"; pdf.attachmentName = file.name; pdf.attachmentType = file.type; pdf.attachmentData = file;
+    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) { notify("Choose a PDF file to import."); return; }
+    const pdf = createNote("pdf"); pdf.title = file.name.replace(/\.pdf$/i, "") || "Imported PDF"; pdf.attachmentName = file.name; pdf.attachmentType = file.type || "application/pdf"; pdf.attachmentData = file;
     void persist(pdf); setActiveId(pdf.id); setSection("pdfs");
   };
   const exportMarkdown = () => {

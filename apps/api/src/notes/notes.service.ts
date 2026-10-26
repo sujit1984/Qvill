@@ -4,7 +4,7 @@ import type { NoteKind } from "@qvill/shared";
 import { DatabaseService } from "../database/database.service";
 
 const kinds = new Set<NoteKind>(["quick", "journal", "knowledge", "pdf"]);
-type NoteRow = { id: string; kind: NoteKind; title: string; body: string; parent_id: string | null; tags: string[]; pinned: boolean; archived: boolean; entry_date: string | null; attachment_name: string | null; created_at: Date; updated_at: Date };
+type NoteRow = Record<string, any> & { id: string; kind: NoteKind; title: string; body: string; parent_id: string | null; tags: string[]; pinned: boolean; archived: boolean; entry_date: string | null; attachment_name: string | null; created_at: Date; updated_at: Date };
 const present = (row: NoteRow) => ({
   id: row.id, kind: row.kind, title: row.title, body: row.body, parentId: row.parent_id,
   tags: row.tags, pinned: row.pinned, archived: row.archived,
