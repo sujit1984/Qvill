@@ -48,6 +48,7 @@ export default function Home() {
   const [saved, setSaved] = useState(true);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [toast, setToast] = useState("");
+  const [treeMenu, setTreeMenu] = useState<{ x: number; y: number; nodeId: string; depth: number } | null>(null);
   const [mobileMenu, setMobileMenu] = useState(false);
   const [pdfUrl, setPdfUrl] = useState("");
   const titleRef = useRef<HTMLInputElement>(null);
@@ -101,6 +102,18 @@ export default function Home() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [create]);
+
+  useEffect(() => {
+    if (!treeMenu) return;
+    const closeOnOutsideClick = () => setTreeMenu(null);
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === "Escape") setTreeMenu(null); };
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutsideClick);
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [treeMenu]);
 
   const update = (changes: Partial<Note>) => {
     if (!active) return;
@@ -168,7 +181,10 @@ export default function Home() {
 
   const navItem = (id: Section, icon: string, label: string, count?: number) => <button className={`nav-item ${section === id ? "selected" : ""}`} onClick={() => chooseSection(id)} key={id}><Icon name={icon}/><span>{label}</span>{count !== undefined && count > 0 && <small>{count}</small>}</button>;
   const renderTree = (parentId: string | null, depth = 0): ReactNode => (tree.get(parentId) ?? []).map((node) => <div key={node.id}>
-    <div className={`tree-row ${activeId === node.id ? "current" : ""}`} style={{ paddingLeft: 10 + depth * 15 }}>
+    <div className={`tree-row ${activeId === node.id ? "current" : ""}`} style={{ paddingLeft: 10 + depth * 15 }} onContextMenu={(event) => {
+      event.preventDefault();
+      setTreeMenu({ x: Math.min(event.clientX, window.innerWidth - 220), y: Math.min(event.clientY, window.innerHeight - 70), nodeId: node.id, depth });
+    }}>
       <button className="tree-toggle" onClick={() => setExpanded((v) => ({ ...v, [node.id]: !v[node.id] }))} aria-label={expanded[node.id] ? "Collapse folder" : "Expand folder"}>{tree.has(node.id) ? <span>{expanded[node.id] ? "⌄" : "›"}</span> : <span className="tree-spacer"/>}</button>
       <button className="tree-title" onClick={() => { setActiveId(node.id); setSection("knowledge"); }}>{node.title || "Untitled page"}</button><span className="tree-level">{KNOWLEDGE_LEVELS[depth] ?? "Leaf"}</span>{depth < KNOWLEDGE_LEVELS.length - 1 && <button className="child-add" title={`Add ${KNOWLEDGE_LEVELS[depth + 1].toLowerCase()} page`} onClick={() => create("knowledge", node.id)}><Icon name="plus" size={13}/></button>}
     </div>
@@ -188,6 +204,9 @@ export default function Home() {
       </nav>
       <div className="tree-header"><span>YOUR PAGES</span><button onClick={() => create("knowledge")} title="Add a knowledge page"><Icon name="plus" size={15}/></button></div>
       <div className="tree-list">{renderTree(null)}{!tree.size && <p className="tree-empty">Your pages will appear here</p>}</div>
+      {treeMenu && <div className="tree-context-menu" role="menu" style={{ left: treeMenu.x, top: treeMenu.y }} onMouseDown={(event) => event.stopPropagation()}>
+        {treeMenu.depth < KNOWLEDGE_LEVELS.length - 1 ? <button role="menuitem" onClick={() => { setTreeMenu(null); create("knowledge", treeMenu.nodeId); }}>＋ Add {KNOWLEDGE_LEVELS[treeMenu.depth + 1]} page</button> : <span>Leaf pages cannot have child pages</span>}
+      </div>}
       <div className="sidebar-bottom"><div className="sync-indicator"><span className="sync-dot"/><div><strong>Saved on this device</strong><small>{saved ? "Browser storage" : "Saving changes…"}</small></div></div><div className="profile"><div className="avatar">Q</div><div><strong>My workspace</strong><small>Personal space</small></div><button aria-label="Workspace options"><Icon name="more"/></button></div></div>
     </aside>
     {mobileMenu && <button className="scrim" onClick={() => setMobileMenu(false)} aria-label="Close navigation"/>}
