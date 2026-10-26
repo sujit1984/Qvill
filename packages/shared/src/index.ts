@@ -1,6 +1,6 @@
 export const NOTE_KINDS = ["quick", "journal", "knowledge", "pdf"] as const;
 export type NoteKind = (typeof NOTE_KINDS)[number];
-export const KNOWLEDGE_LEVELS = ["Root", "Trunk", "Branch", "Twig", "Leaf"] as const;
+export const KNOWLEDGE_LEVELS = ["Tree", "Branches", "Leaf", "Flower", "Fruit"] as const;
 export type KnowledgeLevel = (typeof KNOWLEDGE_LEVELS)[number];
 
 export interface Note {

@@ -58,7 +58,7 @@ export class NotesService {
     const parentDepth = parentId ? depthOf(parentId) : -1;
     const subtreeHeight = childId ? heightOf(childId) : 1;
     if (parentDepth + subtreeHeight > 4) {
-      throw new BadRequestException("The knowledge tree is limited to Root → Trunk → Branch → Twig → Leaf. Leaf pages cannot have children.");
+      throw new BadRequestException("The knowledge tree is limited to Tree → Branches → Leaf → Flower → Fruit. Fruit pages cannot have children.");
     }
   }
 

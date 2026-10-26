@@ -43,7 +43,7 @@ Use Expo Go or a development build to open the iOS / Android app. On-device note
 
 ## Current scope
 
-Knowledge pages use a five-level tree: Root → Trunk → Branch → Twig → Leaf. Leaf pages cannot have children. On desktop, right-click a page in the tree to add its next level (or use the adjacent plus button); on mobile, long-press a page. The web client currently supports quick notes, journal notes, hierarchical knowledge pages, local autosave, search, note sharing/export, browser print-to-PDF, and local PDF import/preview. The mobile client supports local notes, journals, and nested pages. Imported PDFs remain unchanged. PDF text extraction, annotations, true PDF editing, mobile PDF import, cross-device sync, authentication, and multi-user access remain follow-up work.
+Knowledge pages use a five-level tree: Tree → Branches → Leaf → Flower → Fruit. Fruit pages cannot have children. Use the “+ child node” button or the plus beside a tree page to add its next level; desktop also supports right-click and mobile supports long-press. The web client currently supports quick notes, journal notes, hierarchical knowledge pages, local autosave, search, note sharing/export, browser print-to-PDF, and local PDF import/preview. The mobile client supports local notes, journals, and nested pages. Imported PDFs remain unchanged. PDF text extraction, annotations, true PDF editing, mobile PDF import, cross-device sync, authentication, and multi-user access remain follow-up work.
 
 ## Build the macOS desktop app
 

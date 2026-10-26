@@ -83,12 +83,16 @@ static const uint16_t QVILL_PORT = 47821;
     NSString *line = [[NSString alloc] initWithBytes:request length:(NSUInteger)received encoding:NSUTF8StringEncoding];
     BOOL isHome = [line hasPrefix:@"GET / "] || [line hasPrefix:@"GET /?"];
     BOOL isLogo = [line hasPrefix:@"GET /qvill-logo.png "] || [line hasPrefix:@"GET /qvill-logo.png?"];
+    NSArray<NSString *> *hierarchyPaths = @[@"tree", @"branches", @"leaf", @"flower", @"fruit"];
+    NSString *hierarchyAsset = nil;
+    for (NSString *name in hierarchyPaths) { NSString *path = [@"/hierarchy/" stringByAppendingFormat:@"%@.png", name]; if ([line hasPrefix:[@"GET " stringByAppendingString:path]] || [line hasPrefix:[@"GET " stringByAppendingFormat:@"%@?", path]]) { hierarchyAsset = [path substringFromIndex:1]; break; } }
+    BOOL isHierarchy = hierarchyAsset != nil;
     NSData *body = nil;
     NSString *status = @"200 OK";
-    NSString *mime = isLogo ? @"image/png" : @"text/html; charset=utf-8";
-    if (isHome || isLogo) {
+    NSString *mime = (isLogo || isHierarchy) ? @"image/png" : @"text/html; charset=utf-8";
+    if (isHome || isLogo || isHierarchy) {
         NSURL *webRoot = [[[NSBundle mainBundle] resourceURL] URLByAppendingPathComponent:@"web" isDirectory:YES];
-        body = [NSData dataWithContentsOfURL:[webRoot URLByAppendingPathComponent:(isLogo ? @"qvill-logo.png" : @"index.html")]];
+        body = [NSData dataWithContentsOfURL:[webRoot URLByAppendingPathComponent:(isHierarchy ? hierarchyAsset : isLogo ? @"qvill-logo.png" : @"index.html")]];
     }
     if (!body) {
         status = @"404 Not Found";
