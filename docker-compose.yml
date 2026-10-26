@@ -1,0 +1,18 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: qvill
+      POSTGRES_USER: qvill
+      POSTGRES_PASSWORD: qvill-local
+    ports:
+      - "5432:5432"
+    volumes:
+      - qvill-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U qvill -d qvill"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+volumes:
+  qvill-postgres:
