@@ -7,7 +7,7 @@
 
 static const uint16_t QVILL_PORT = 47821;
 
-@interface QvillDelegate : NSObject <NSApplicationDelegate>
+@interface QvillDelegate : NSObject <NSApplicationDelegate, WKScriptMessageHandler>
 @property(nonatomic, strong) NSWindow *window;
 @property(nonatomic, strong) WKWebView *webView;
 @property(nonatomic, assign) int serverSocket;
@@ -19,6 +19,7 @@ static const uint16_t QVILL_PORT = 47821;
     [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
     WKWebViewConfiguration *configuration = [[WKWebViewConfiguration alloc] init];
     configuration.websiteDataStore = [WKWebsiteDataStore defaultDataStore];
+    [configuration.userContentController addScriptMessageHandler:self name:@"qvill"];
     self.webView = [[WKWebView alloc] initWithFrame:NSZeroRect configuration:configuration];
     self.webView.allowsBackForwardNavigationGestures = YES;
 
@@ -44,6 +45,21 @@ static const uint16_t QVILL_PORT = 47821;
         return;
     }
     [self.webView loadRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:@"http://127.0.0.1:47821/"]]];
+}
+
+- (void)userContentController:(WKUserContentController *)userContentController didReceiveScriptMessage:(WKScriptMessage *)message {
+    if (![message.name isEqualToString:@"qvill"] || ![message.body isKindOfClass:[NSDictionary class]]) return;
+    if (![message.body[@"action"] isEqualToString:@"print"]) return;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        NSPrintInfo *printInfo = [[NSPrintInfo sharedPrintInfo] copy];
+        printInfo.horizontalPagination = NSPrintingPaginationModeAutomatic;
+        printInfo.verticalPagination = NSPrintingPaginationModeAutomatic;
+        printInfo.verticallyCentered = NO;
+        NSPrintOperation *operation = [NSPrintOperation printOperationWithView:self.webView printInfo:printInfo];
+        operation.showsPrintPanel = YES;
+        operation.showsProgressPanel = YES;
+        [operation runOperation];
+    });
 }
 
 - (BOOL)startLocalServer:(NSError **)error {
