@@ -1,5 +1,6 @@
 #import <Cocoa/Cocoa.h>
 #import <WebKit/WebKit.h>
+#import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 #import <arpa/inet.h>
 #import <netinet/in.h>
 #import <sys/socket.h>
@@ -11,6 +12,7 @@ static const uint16_t QVILL_PORT = 47821;
 @property(nonatomic, strong) NSWindow *window;
 @property(nonatomic, strong) WKWebView *webView;
 @property(nonatomic, strong) WKWebView *pdfExportWebView;
+@property(nonatomic, copy) NSString *pdfExportFilename;
 @property(nonatomic, assign) int serverSocket;
 @end
 
@@ -85,6 +87,9 @@ static const uint16_t QVILL_PORT = 47821;
     if ([action isEqualToString:@"export-pdf"]) {
         NSString *html = message.body[@"html"];
         if (![html isKindOfClass:[NSString class]]) return;
+        NSString *filename = message.body[@"filename"];
+        if (![filename isKindOfClass:[NSString class]] || filename.length == 0) filename = @"Qvill export.pdf";
+        self.pdfExportFilename = [filename.lastPathComponent hasSuffix:@".pdf"] ? filename.lastPathComponent : [filename.lastPathComponent stringByAppendingPathExtension:@"pdf"];
         WKWebViewConfiguration *configuration = [[WKWebViewConfiguration alloc] init];
         self.pdfExportWebView = [[WKWebView alloc] initWithFrame:NSMakeRect(0, 0, 612, 792) configuration:configuration];
         self.pdfExportWebView.navigationDelegate = self;
@@ -113,25 +118,38 @@ static const uint16_t QVILL_PORT = 47821;
 
 - (void)webView:(WKWebView *)webView didFinishNavigation:(WKNavigation *)navigation {
     if (webView != self.pdfExportWebView) return;
-    NSPrintInfo *printInfo = [[NSPrintInfo sharedPrintInfo] copy];
-    printInfo.horizontalPagination = NSPrintingPaginationModeAutomatic;
-    printInfo.verticalPagination = NSPrintingPaginationModeAutomatic;
-    printInfo.verticallyCentered = NO;
-    NSPrintOperation *operation = [webView printOperationWithPrintInfo:printInfo];
-    if (!operation) {
-        NSAlert *alert = [[NSAlert alloc] init];
-        alert.messageText = @"PDF export isn’t available";
-        alert.informativeText = @"Qvill couldn’t prepare these pages for export. Try again after reopening the page.";
-        [alert runModal];
+    NSSavePanel *panel = [NSSavePanel savePanel];
+    panel.allowedContentTypes = @[UTTypePDF];
+    panel.nameFieldStringValue = self.pdfExportFilename ?: @"Qvill export.pdf";
+    [panel beginSheetModalForWindow:self.window completionHandler:^(NSModalResponse response) {
+        if (response == NSModalResponseOK) {
+            NSPrintInfo *printInfo = [[NSPrintInfo sharedPrintInfo] copy];
+            printInfo.horizontalPagination = NSPrintingPaginationModeAutomatic;
+            printInfo.verticalPagination = NSPrintingPaginationModeAutomatic;
+            printInfo.verticallyCentered = NO;
+            printInfo.jobDisposition = NSPrintSaveJob;
+            [printInfo setValue:panel.URL forKey:NSPrintJobSavingURL];
+            NSPrintOperation *operation = [webView printOperationWithPrintInfo:printInfo];
+            if (operation) {
+                operation.showsPrintPanel = NO;
+                operation.showsProgressPanel = YES;
+                if (![operation runOperation]) {
+                    NSAlert *alert = [[NSAlert alloc] init];
+                    alert.messageText = @"PDF export failed";
+                    alert.informativeText = @"Qvill couldn’t write the PDF file. Choose another location and try again.";
+                    [alert runModal];
+                }
+            } else {
+                NSAlert *alert = [[NSAlert alloc] init];
+                alert.messageText = @"PDF export isn’t available";
+                alert.informativeText = @"Qvill couldn’t prepare these pages for export. Try again after reopening the page.";
+                [alert runModal];
+            }
+        }
         self.pdfExportWebView.navigationDelegate = nil;
         self.pdfExportWebView = nil;
-        return;
-    }
-    operation.showsPrintPanel = YES;
-    operation.showsProgressPanel = YES;
-    [operation runOperation];
-    self.pdfExportWebView.navigationDelegate = nil;
-    self.pdfExportWebView = nil;
+        self.pdfExportFilename = nil;
+    }];
 }
 
 - (BOOL)startLocalServer:(NSError **)error {
