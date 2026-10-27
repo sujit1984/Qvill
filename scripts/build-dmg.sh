@@ -26,7 +26,7 @@ cp "$ROOT/dist/mac/Qvill.icns" "$APP/Contents/Resources/Qvill.icns"
 cp -R "$ROOT/apps/desktop/web" "$APP/Contents/Resources/web"
 mkdir -p "$ROOT/.cache/clang-modules"
 clang -fobjc-arc -O2 -mmacosx-version-min=13.0 -fmodules-cache-path="$ROOT/.cache/clang-modules" \
-  -framework Cocoa -framework WebKit \
+  -framework Cocoa -framework WebKit -framework UniformTypeIdentifiers \
   "$ROOT/apps/desktop/native/main.m" \
   -o "$APP/Contents/MacOS/Qvill"
 codesign --force --deep --sign - "$APP"
