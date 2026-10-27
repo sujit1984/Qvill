@@ -128,12 +128,14 @@ static const uint16_t QVILL_PORT = 47821;
             printInfo.verticalPagination = NSPrintingPaginationModeAutomatic;
             printInfo.verticallyCentered = NO;
             printInfo.jobDisposition = NSPrintSaveJob;
-            [printInfo setValue:panel.URL forKey:NSPrintJobSavingURL];
+            NSMutableDictionary *attributes = printInfo.dictionary;
+            attributes[NSPrintJobDisposition] = NSPrintSaveJob;
+            attributes[NSPrintJobSavingURL] = panel.URL;
             NSPrintOperation *operation = [webView printOperationWithPrintInfo:printInfo];
             if (operation) {
                 operation.showsPrintPanel = NO;
                 operation.showsProgressPanel = YES;
-                if (![operation runOperation]) {
+                if (![operation runOperation] || ![[NSFileManager defaultManager] fileExistsAtPath:panel.URL.path]) {
                     NSAlert *alert = [[NSAlert alloc] init];
                     alert.messageText = @"PDF export failed";
                     alert.informativeText = @"Qvill couldn’t write the PDF file. Choose another location and try again.";
