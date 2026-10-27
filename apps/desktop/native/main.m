@@ -15,8 +15,39 @@ static const uint16_t QVILL_PORT = 47821;
 
 @implementation QvillDelegate
 
+- (void)installEditMenu {
+    NSMenu *mainMenu = [[NSMenu alloc] initWithTitle:@"Qvill"];
+    NSMenuItem *editMenuItem = [[NSMenuItem alloc] initWithTitle:@"Edit" action:nil keyEquivalent:@""];
+    NSMenu *editMenu = [[NSMenu alloc] initWithTitle:@"Edit"];
+    NSArray<NSDictionary *> *commands = @[
+        @{ @"title": @"Undo", @"action": NSStringFromSelector(@selector(undo:)), @"key": @"z" },
+        @{ @"title": @"Redo", @"action": NSStringFromSelector(@selector(redo:)), @"key": @"z", @"modifiers": @(NSEventModifierFlagCommand | NSEventModifierFlagShift) },
+        @{ @"separator": @YES },
+        @{ @"title": @"Cut", @"action": NSStringFromSelector(@selector(cut:)), @"key": @"x" },
+        @{ @"title": @"Copy", @"action": NSStringFromSelector(@selector(copy:)), @"key": @"c" },
+        @{ @"title": @"Paste", @"action": NSStringFromSelector(@selector(paste:)), @"key": @"v" },
+        @{ @"separator": @YES },
+        @{ @"title": @"Select All", @"action": NSStringFromSelector(@selector(selectAll:)), @"key": @"a" }
+    ];
+    for (NSDictionary *command in commands) {
+        if (command[@"separator"]) {
+            [editMenu addItem:[NSMenuItem separatorItem]];
+            continue;
+        }
+        NSMenuItem *item = [[NSMenuItem alloc] initWithTitle:command[@"title"]
+                                                     action:NSSelectorFromString(command[@"action"])
+                                              keyEquivalent:command[@"key"]];
+        item.keyEquivalentModifierMask = command[@"modifiers"] ? [command[@"modifiers"] unsignedIntegerValue] : NSEventModifierFlagCommand;
+        [editMenu addItem:item];
+    }
+    editMenuItem.submenu = editMenu;
+    [mainMenu addItem:editMenuItem];
+    NSApp.mainMenu = mainMenu;
+}
+
 - (void)applicationDidFinishLaunching:(NSNotification *)notification {
     [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
+    [self installEditMenu];
     WKWebViewConfiguration *configuration = [[WKWebViewConfiguration alloc] init];
     configuration.websiteDataStore = [WKWebsiteDataStore defaultDataStore];
     [configuration.userContentController addScriptMessageHandler:self name:@"qvill"];
