@@ -86,7 +86,14 @@ static const uint16_t QVILL_PORT = 47821;
         printInfo.horizontalPagination = NSPrintingPaginationModeAutomatic;
         printInfo.verticalPagination = NSPrintingPaginationModeAutomatic;
         printInfo.verticallyCentered = NO;
-        NSPrintOperation *operation = [NSPrintOperation printOperationWithView:self.webView printInfo:printInfo];
+        NSPrintOperation *operation = [self.webView printOperationWithPrintInfo:printInfo];
+        if (!operation) {
+            NSAlert *alert = [[NSAlert alloc] init];
+            alert.messageText = @"Printing isn’t available";
+            alert.informativeText = @"Qvill couldn’t prepare this note for printing. Try again after reopening the note.";
+            [alert runModal];
+            return;
+        }
         operation.showsPrintPanel = YES;
         operation.showsProgressPanel = YES;
         [operation runOperation];
