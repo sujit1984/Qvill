@@ -53,7 +53,7 @@ function noteExportHTML(root: Note, notes: Note[]) {
     (children.get(note.id) ?? []).forEach(addPage);
   };
   addPage(root);
-  return `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHTML(root.title || "Qvill export")}</title><style>@page{size:auto;margin:18mm}*{box-sizing:border-box}body{margin:0;color:#263445;font:12pt/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.page{break-after:page;page-break-after:always}.page:last-child{break-after:auto;page-break-after:auto}.eyebrow{font-size:9pt;letter-spacing:.08em;text-transform:uppercase;color:#547bad}h1{font:30pt/1.2 Georgia,serif;color:#183253;margin:12pt 0 22pt}.body{white-space:pre-wrap;overflow-wrap:anywhere}</style></head><body>${pages.join("")}</body></html>`;
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHTML(root.title || "Qvill export")}</title><style>@page{size:letter;margin:18mm}*{box-sizing:border-box}body{margin:0;color:#263445;font:12pt/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.page{break-after:page;page-break-after:always}.page:last-child{break-after:auto;page-break-after:auto}.eyebrow{font-size:9pt;letter-spacing:.08em;text-transform:uppercase;color:#547bad}h1{font:30pt/1.2 Georgia,serif;color:#183253;margin:12pt 0 22pt}.body{white-space:pre-wrap;overflow-wrap:anywhere}</style></head><body>${pages.join("")}</body></html>`;
 }
 
 export default function Home() {

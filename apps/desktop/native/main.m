@@ -14,6 +14,8 @@ static const uint16_t QVILL_PORT = 47821;
 @property(nonatomic, strong) WKWebView *pdfExportWebView;
 @property(nonatomic, copy) NSString *pdfExportFilename;
 @property(nonatomic, assign) int serverSocket;
+- (void)showPDFExportError:(NSString *)message;
+- (void)finishPDFExport;
 @end
 
 @implementation QvillDelegate
@@ -118,40 +120,52 @@ static const uint16_t QVILL_PORT = 47821;
 
 - (void)webView:(WKWebView *)webView didFinishNavigation:(WKNavigation *)navigation {
     if (webView != self.pdfExportWebView) return;
-    NSSavePanel *panel = [NSSavePanel savePanel];
-    panel.allowedContentTypes = @[UTTypePDF];
-    panel.nameFieldStringValue = self.pdfExportFilename ?: @"Qvill export.pdf";
-    [panel beginSheetModalForWindow:self.window completionHandler:^(NSModalResponse response) {
-        if (response == NSModalResponseOK) {
-            NSPrintInfo *printInfo = [[NSPrintInfo sharedPrintInfo] copy];
-            printInfo.horizontalPagination = NSPrintingPaginationModeAutomatic;
-            printInfo.verticalPagination = NSPrintingPaginationModeAutomatic;
-            printInfo.verticallyCentered = NO;
-            printInfo.jobDisposition = NSPrintSaveJob;
-            NSMutableDictionary *attributes = printInfo.dictionary;
-            attributes[NSPrintJobDisposition] = NSPrintSaveJob;
-            attributes[NSPrintJobSavingURL] = panel.URL;
-            NSPrintOperation *operation = [webView printOperationWithPrintInfo:printInfo];
-            if (operation) {
-                operation.showsPrintPanel = NO;
-                operation.showsProgressPanel = YES;
-                if (![operation runOperation] || ![[NSFileManager defaultManager] fileExistsAtPath:panel.URL.path]) {
-                    NSAlert *alert = [[NSAlert alloc] init];
-                    alert.messageText = @"PDF export failed";
-                    alert.informativeText = @"Qvill couldn’t write the PDF file. Choose another location and try again.";
-                    [alert runModal];
-                }
-            } else {
-                NSAlert *alert = [[NSAlert alloc] init];
-                alert.messageText = @"PDF export isn’t available";
-                alert.informativeText = @"Qvill couldn’t prepare these pages for export. Try again after reopening the page.";
-                [alert runModal];
-            }
+    [webView evaluateJavaScript:@"Math.max(document.documentElement.scrollHeight, document.body.scrollHeight)" completionHandler:^(id contentHeight, NSError *layoutError) {
+        if (layoutError || ![contentHeight respondsToSelector:@selector(doubleValue)]) {
+            [self showPDFExportError:@"Qvill couldn’t read the page content for export."];
+            [self finishPDFExport];
+            return;
         }
-        self.pdfExportWebView.navigationDelegate = nil;
-        self.pdfExportWebView = nil;
-        self.pdfExportFilename = nil;
+        CGFloat height = MAX(792, [contentHeight doubleValue]);
+        webView.frame = NSMakeRect(0, 0, 612, height);
+        NSSavePanel *panel = [NSSavePanel savePanel];
+        panel.allowedContentTypes = @[UTTypePDF];
+        panel.nameFieldStringValue = self.pdfExportFilename ?: @"Qvill export.pdf";
+        [panel beginSheetModalForWindow:self.window completionHandler:^(NSModalResponse response) {
+            if (response != NSModalResponseOK) {
+                [self finishPDFExport];
+                return;
+            }
+            WKPDFConfiguration *configuration = [[WKPDFConfiguration alloc] init];
+            configuration.rect = NSMakeRect(0, 0, 612, height);
+            [webView createPDFWithConfiguration:configuration completionHandler:^(NSData *pdfData, NSError *pdfError) {
+                NSError *writeError = nil;
+                if (!pdfData || pdfError || ![pdfData writeToURL:panel.URL options:NSDataWritingAtomic error:&writeError]) {
+                    NSString *details = writeError.localizedDescription ?: pdfError.localizedDescription ?: @"Unknown error";
+                    [self showPDFExportError:[NSString stringWithFormat:@"Qvill couldn’t save the PDF at the selected location. %@", details]];
+                } else {
+                    NSDictionary *attributes = [[NSFileManager defaultManager] attributesOfItemAtPath:panel.URL.path error:nil];
+                    if ([attributes[NSFileSize] unsignedLongLongValue] < 5) {
+                        [self showPDFExportError:@"The PDF was empty. Reopen the note and try exporting it again."];
+                    }
+                }
+                [self finishPDFExport];
+            }];
+        }];
     }];
+}
+
+- (void)showPDFExportError:(NSString *)message {
+    NSAlert *alert = [[NSAlert alloc] init];
+    alert.messageText = @"PDF export failed";
+    alert.informativeText = message;
+    [alert runModal];
+}
+
+- (void)finishPDFExport {
+    self.pdfExportWebView.navigationDelegate = nil;
+    self.pdfExportWebView = nil;
+    self.pdfExportFilename = nil;
 }
 
 - (BOOL)startLocalServer:(NSError **)error {
