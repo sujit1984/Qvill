@@ -39,6 +39,22 @@ function displayKind(kind: NoteKind) { return ({ quick: "Quick note", journal: "
 function displayNoteKind(note: Note, notes: Note[]) { return note.kind === "knowledge" ? `${knowledgeLevel(note.id, notes)} page` : displayKind(note.kind); }
 function hierarchyIcon(level: string) { return level.toLowerCase(); }
 function excerpt(body: string) { return body.replace(/[#>*_`\[\]]/g, " ").replace(/\s+/g, " ").trim(); }
+function escapeHTML(value: string) {
+  const entities: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
+  return value.replace(/[&<>"']/g, (character) => entities[character]);
+}
+function noteExportHTML(root: Note, notes: Note[]) {
+  const children = new Map<string | null, Note[]>();
+  notes.filter((note) => note.kind === "knowledge" && !note.archived).forEach((note) => children.set(note.parentId, [...(children.get(note.parentId) ?? []), note]));
+  children.forEach((items) => items.sort((a, b) => a.title.localeCompare(b.title)));
+  const pages: string[] = [];
+  const addPage = (note: Note) => {
+    pages.push(`<section class="page"><div class="eyebrow">${escapeHTML(note.kind === "knowledge" ? `${knowledgeLevel(note.id, notes)} page` : displayKind(note.kind))}${note.entryDate ? ` · ${escapeHTML(note.entryDate)}` : ""}</div><h1>${escapeHTML(note.title || "Untitled note")}</h1><div class="body">${escapeHTML(note.body || "").replace(/\n/g, "<br>")}</div></section>`);
+    (children.get(note.id) ?? []).forEach(addPage);
+  };
+  addPage(root);
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHTML(root.title || "Qvill export")}</title><style>@page{size:auto;margin:18mm}*{box-sizing:border-box}body{margin:0;color:#263445;font:12pt/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.page{break-after:page;page-break-after:always}.page:last-child{break-after:auto;page-break-after:auto}.eyebrow{font-size:9pt;letter-spacing:.08em;text-transform:uppercase;color:#547bad}h1{font:30pt/1.2 Georgia,serif;color:#183253;margin:12pt 0 22pt}.body{white-space:pre-wrap;overflow-wrap:anywhere}</style></head><body>${pages.join("")}</body></html>`;
+}
 
 export default function Home() {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -163,7 +179,20 @@ export default function Home() {
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `${active.title.trim().replace(/[^\w-]+/g, "-") || "qvill-note"}.md`; a.click(); URL.revokeObjectURL(a.href);
     notify("Markdown export downloaded");
   };
-  const exportPDF = () => { if (!active) return; window.print(); };
+  const printNote = () => { if (active) window.print(); };
+  const exportPDF = () => {
+    if (!active) return;
+    if (active.kind === "pdf" && active.attachmentData) {
+      const url = URL.createObjectURL(active.attachmentData);
+      const link = document.createElement("a"); link.href = url; link.download = active.attachmentName ?? "qvill-document.pdf"; link.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      return;
+    }
+    const popup = window.open("", "_blank");
+    if (!popup) { notify("Allow pop-ups to export this note as a PDF."); return; }
+    popup.document.open(); popup.document.write(noteExportHTML(active, notes)); popup.document.close();
+    window.setTimeout(() => { popup.focus(); popup.print(); }, 250);
+  };
   const shareNote = async () => {
     if (!active) return;
     if (active.kind === "pdf" && active.attachmentData) {
@@ -225,12 +254,12 @@ export default function Home() {
         </section>
         <section className="editor-pane">
           {active ? <>
-            <div className="editor-toolbar"><button className="back-to-list" onClick={() => setActiveId(null)}><Icon name="back" size={16}/><span>Back to notes</span></button>{active.kind === "knowledge" && canAddKnowledgeChild(active.id, notes) && <button className="child-node-button" onClick={() => create("knowledge", active.id)}>+ child node</button>}<div className="editor-tools"><span className={`save-status ${saved ? "" : "saving"}`}><i/>{saved ? "Saved" : "Saving"}</span><button className={`tool-button ${active.pinned ? "is-pinned" : ""}`} title={active.pinned ? "Unpin note" : "Pin note"} onClick={togglePin}><Icon name="pin" size={16}/></button><button className="tool-button" title="Share note" onClick={() => void shareNote()}><Icon name="share" size={16}/></button><div className="menu-wrap"><details><summary className="tool-button" aria-label="More actions"><Icon name="more" size={17}/></summary><div className="action-menu"><button onClick={exportMarkdown}>Export as Markdown</button><button onClick={exportPDF}>Print / save as PDF</button><button className="danger" onClick={() => void deleteActive()}>Move to trash</button></div></details></div></div></div>
+            <div className="editor-toolbar"><button className="back-to-list" onClick={() => setActiveId(null)}><Icon name="back" size={16}/><span>Back to notes</span></button>{active.kind === "knowledge" && canAddKnowledgeChild(active.id, notes) && <button className="child-node-button" onClick={() => create("knowledge", active.id)}>+ child node</button>}<div className="editor-tools"><span className={`save-status ${saved ? "" : "saving"}`}><i/>{saved ? "Saved" : "Saving"}</span><button className={`tool-button ${active.pinned ? "is-pinned" : ""}`} title={active.pinned ? "Unpin note" : "Pin note"} onClick={togglePin}><Icon name="pin" size={16}/></button><button className="tool-button" title="Share note" onClick={() => void shareNote()}><Icon name="share" size={16}/></button><div className="menu-wrap"><details><summary className="tool-button" aria-label="More actions"><Icon name="more" size={17}/></summary><div className="action-menu"><button onClick={exportMarkdown}>Export as Markdown</button><button onClick={printNote}>Print</button><button onClick={exportPDF}>Export to PDF</button><button className="danger" onClick={() => void deleteActive()}>Move to trash</button></div></details></div></div></div>
             <article className="editor-document">
               <div className="editor-meta"><span className={`note-kind ${active.kind}`}>{active.kind === "knowledge" && <img className="hierarchy-icon" src={`/hierarchy/${hierarchyIcon(knowledgeLevel(active.id, notes))}.png`} alt=""/>}<span/>{displayNoteKind(active, notes)}</span>{active.kind === "journal" && <span className="entry-date">{active.entryDate ?? today()}</span>}{active.parentId && <span className="parent-crumb">in {notes.find((n) => n.id === active.parentId)?.title ?? "Knowledge base"}</span>}</div>
               <input ref={titleRef} className="title-input" value={active.title} onChange={(e) => update({ title: e.target.value })} placeholder="Untitled note" aria-label="Note title" />
               {active.kind === "pdf" ? <div className="pdf-document"><div className="pdf-toolbar"><span><Icon name="file" size={16}/>{active.attachmentName ?? "PDF file"}</span><button onClick={() => pdfUrl && window.open(pdfUrl, "_blank", "noopener,noreferrer")}>Open original <Icon name="share" size={14}/></button></div>{pdfUrl ? <iframe title={active.attachmentName ?? "Imported PDF"} src={pdfUrl}/> : <div className="pdf-placeholder">The original PDF is stored with this item.</div>}<div className="pdf-convert"><strong>Want to work with the text?</strong><p>PDF text extraction and annotation tools are part of the document workflow.</p><button onClick={() => notify("PDF text extraction is coming in the document-processing phase.")}>Convert to editable note</button></div></div> : <><div className="format-bar"><span className="format-mark">T</span><span className="format-divider"/><span className="format-help">Write freely, or use Markdown for headings and lists.</span></div><textarea className="body-input" value={active.body} onChange={(e) => update({ body: e.target.value })} placeholder={active.kind === "journal" ? "What’s on your mind today?\n\nStart anywhere…" : active.kind === "knowledge" ? "Add a thought, an idea, or something you want to remember…" : "Write something worth remembering…"} aria-label="Note body" spellCheck/></>}
-              <div className="editor-bottom"><span>Created {new Intl.DateTimeFormat("en", { month: "long", day: "numeric", year: "numeric" }).format(new Date(active.createdAt))}</span><button onClick={exportPDF}>Export / print <Icon name="share" size={14}/></button></div>
+              <div className="editor-bottom"><span>Created {new Intl.DateTimeFormat("en", { month: "long", day: "numeric", year: "numeric" }).format(new Date(active.createdAt))}</span><button onClick={printNote}>Print <Icon name="share" size={14}/></button></div>
             </article>
           </> : <div className="editor-empty"><div className="empty-paper"><div className="paper-spark">✳</div><div className="paper-lines"><i/><i/><i/><i/><i/></div></div><h2>Your thoughts have room here.</h2><p>Select a note to continue, or start with a fresh page.</p><button className="empty-cta" onClick={() => create("quick")}><Icon name="plus" size={16}/>Create a new note</button></div>}
         </section>

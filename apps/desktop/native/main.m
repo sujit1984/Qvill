@@ -7,9 +7,10 @@
 
 static const uint16_t QVILL_PORT = 47821;
 
-@interface QvillDelegate : NSObject <NSApplicationDelegate, WKScriptMessageHandler>
+@interface QvillDelegate : NSObject <NSApplicationDelegate, WKScriptMessageHandler, WKNavigationDelegate>
 @property(nonatomic, strong) NSWindow *window;
 @property(nonatomic, strong) WKWebView *webView;
+@property(nonatomic, strong) WKWebView *pdfExportWebView;
 @property(nonatomic, assign) int serverSocket;
 @end
 
@@ -80,7 +81,17 @@ static const uint16_t QVILL_PORT = 47821;
 
 - (void)userContentController:(WKUserContentController *)userContentController didReceiveScriptMessage:(WKScriptMessage *)message {
     if (![message.name isEqualToString:@"qvill"] || ![message.body isKindOfClass:[NSDictionary class]]) return;
-    if (![message.body[@"action"] isEqualToString:@"print"]) return;
+    NSString *action = message.body[@"action"];
+    if ([action isEqualToString:@"export-pdf"]) {
+        NSString *html = message.body[@"html"];
+        if (![html isKindOfClass:[NSString class]]) return;
+        WKWebViewConfiguration *configuration = [[WKWebViewConfiguration alloc] init];
+        self.pdfExportWebView = [[WKWebView alloc] initWithFrame:NSMakeRect(0, 0, 612, 792) configuration:configuration];
+        self.pdfExportWebView.navigationDelegate = self;
+        [self.pdfExportWebView loadHTMLString:html baseURL:nil];
+        return;
+    }
+    if (![action isEqualToString:@"print"]) return;
     dispatch_async(dispatch_get_main_queue(), ^{
         NSPrintInfo *printInfo = [[NSPrintInfo sharedPrintInfo] copy];
         printInfo.horizontalPagination = NSPrintingPaginationModeAutomatic;
@@ -98,6 +109,29 @@ static const uint16_t QVILL_PORT = 47821;
         operation.showsProgressPanel = YES;
         [operation runOperation];
     });
+}
+
+- (void)webView:(WKWebView *)webView didFinishNavigation:(WKNavigation *)navigation {
+    if (webView != self.pdfExportWebView) return;
+    NSPrintInfo *printInfo = [[NSPrintInfo sharedPrintInfo] copy];
+    printInfo.horizontalPagination = NSPrintingPaginationModeAutomatic;
+    printInfo.verticalPagination = NSPrintingPaginationModeAutomatic;
+    printInfo.verticallyCentered = NO;
+    NSPrintOperation *operation = [webView printOperationWithPrintInfo:printInfo];
+    if (!operation) {
+        NSAlert *alert = [[NSAlert alloc] init];
+        alert.messageText = @"PDF export isn’t available";
+        alert.informativeText = @"Qvill couldn’t prepare these pages for export. Try again after reopening the page.";
+        [alert runModal];
+        self.pdfExportWebView.navigationDelegate = nil;
+        self.pdfExportWebView = nil;
+        return;
+    }
+    operation.showsPrintPanel = YES;
+    operation.showsProgressPanel = YES;
+    [operation runOperation];
+    self.pdfExportWebView.navigationDelegate = nil;
+    self.pdfExportWebView = nil;
 }
 
 - (BOOL)startLocalServer:(NSError **)error {
